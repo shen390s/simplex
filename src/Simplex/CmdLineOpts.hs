@@ -17,6 +17,7 @@ data Flag = Help | Verbose | Print | NoClean
           | Density Int | Quality Int | Crop
           | Convert String | Force | Version
           | ListSymbols String | ThreeTimes
+          | CJK
     deriving (Show, Eq)
 
 data Opts = Opts {
@@ -39,7 +40,8 @@ data Opts = Opts {
     optPdfcrop  :: String,
     optGraphviz :: String,
     optGnuplot  :: String,
-    optConvert  :: String
+    optConvert  :: String,
+    optCJK      :: Bool
   }
 
 defOpts = Opts {
@@ -52,6 +54,7 @@ defOpts = Opts {
     optDryRun   = False,
     optCrop     = False,
     optForce    = False,
+    optCJK      = False,
     optThreeTimes = False,
     optListSymbols = Nothing,
     optWatch    = Nothing,
@@ -75,8 +78,9 @@ cmdOpts = [
         Option "c" ["crop"]     (NoArg Crop)          "Crops the document so that no margins are left.",
         Option "f" ["force"]    (NoArg Force)         "Forces the creation of output files.",
         Option "tT" ["type"]    (ReqArg Type      "") "Specify type of output (pdf, png, tex)",
-        Option "x" ["pdflatex"] (ReqArg Pdflatex  "") "Path to `pdflatex' executable",
+        Option "x" ["pdflatex/xelatex"] (ReqArg Pdflatex  "") "Path to `pdflatex/xelatex' executable",
         Option "k" ["pdfcrop"]  (ReqArg Pdfcrop   "") "Path to `pdfcrop'",
+        Option ""  ["cjk"]      (NoArg CJK)           "Enable CJK language support(xelatex will be used)",
         Option "z" ["graphviz"] (ReqArg Graphviz  "") "Path to `dot' (graphviz)",
         Option "g" ["gnuplot"]  (ReqArg Gnuplot   "") "Path to `gnuplot'",
         Option "m" ["convert"]  (ReqArg Convert   "") "Path to `convert' (ImageMagick)",
@@ -117,6 +121,7 @@ parseArgs = do
                 Graphviz c -> opts { optGraphviz = c }
                 Gnuplot  c -> opts { optGnuplot  = c }
                 Convert  c -> opts { optConvert  = c }
+                CJK        -> opts { optCJK = True }
         parseOpts opts _ = opts
 
 

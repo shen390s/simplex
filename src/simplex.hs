@@ -15,6 +15,7 @@ import Text.Printf
 import Data.List (sort)
 import Data.Maybe
 import Data.Time
+import Data.Text (replace, pack, unpack)
 
 import System.Console.GetOpt (usageInfo)
 import System.Directory
@@ -119,6 +120,10 @@ process opts file exit = do
         pdflatex = optPdflatex opts
         pdfcrop  = optPdfcrop opts
         convert  = optConvert opts
+        cjk      = optCJK opts
+        latex    = if cjk
+                   then unpack (replace (pack "pdflatex") (pack "xelatex") (pack pdflatex))
+                   else pdflatex
 
         pdfopts  = ["-interaction=nonstopmode", "-file-line-error"]
 
@@ -149,7 +154,8 @@ process opts file exit = do
     tok <- liftIO $ loadIncludes True (lex c) >>= loadHashbangs
 
     print' "."
-    let cfg = defaultConfig { oStandalone = optType opts == "png" }
+    let cfg = defaultConfig { oStandalone = optType opts == "png",
+                              oCJK = cjk }
 
     (spec, tok') <- liftIO $ if   (optDryRun opts)
                              then (return $ (newSpec, parse tok))
@@ -165,17 +171,17 @@ process opts file exit = do
         print' "."
 
     unless (optDryRun opts || optType opts == "tex") $ do
-        -- run pdflatex
-        r <- liftIO $ exec verbose pdflatex (pdfopts ++ [filename ++ ".tex"])
+        -- run pdflatex/xelatex
+        r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
         _ <- either (throw' spec . Err . snd) (return . const Ok) r
         print' "."
 
-        -- run pdflatex a second time
-        _ <- liftIO $ exec verbose pdflatex (pdfopts ++ [filename ++ ".tex"])
+        -- run pdflatex/xelatex a second time
+        _ <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
         print' "."
 
-        -- run pdflatex a third time if desired
-        when (optThreeTimes opts) $ do { liftIO $ exec verbose pdflatex (pdfopts ++ [filename ++ ".tex"])
+        -- run pdflatex/xelatex a third time if desired
+        when (optThreeTimes opts) $ do { liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
                                        ; print' "." }
 
         -- clean files

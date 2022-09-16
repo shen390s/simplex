@@ -77,5 +77,6 @@ Executable simplex
                         , mtl          >= 2.0.1
                         , time         >= 1.4
                         , random       >= 1.0
+                        , text	       >= 1.0
 
 

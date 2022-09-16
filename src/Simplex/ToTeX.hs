@@ -75,6 +75,10 @@ documentClass cfg props
 
           : "]{" : articleType props : ["}\n"]
 
+optionInCfg option cfg v1 v2
+  | option cfg = v1
+  | otherwise  = v2
+  
 packages = [("inputenc", "\\usepackage[utf8]{inputenc}\n"),
             ("fancyhdr", "\\usepackage{fancyhdr}\n"),
             ("tabularx", "\\usepackage{tabularx}\n"),
@@ -121,7 +125,12 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
         preamble xs =
             documentClass cfg' props
 
-          : "\\usepackage[utf8]{inputenc}\n"
+          : optionInCfg oCJK cfg'
+               ("\\usepackage[AutoFakeBold,AutoFakeSlant]{xeCJK}\n" ++
+                "\\setCJKmainfont[BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
+                "\\setCJKsansfont[AutoFakeSlant=false, BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
+                "\\setCJKmonofont[ItalicFont=simkai.ttf]{simsun.ttc}\n")
+               "\\usepackage[utf8]{inputenc}\n"
           : maybe
                 ""
                 (\x -> "\\usepackage[" ++ x ++ "]{babel}\n")
@@ -131,7 +140,7 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
           : "\\usepackage{tabularx}\n"
 
           : "\\usepackage{eurosym}\n"
-          : "\\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
+          : optionInCfg oCJK cfg' "" "\\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
 
           : "\\usepackage{amsmath}\n"
           : "\\usepackage{amsfonts}\n"
