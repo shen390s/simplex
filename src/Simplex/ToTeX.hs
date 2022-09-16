@@ -1,6 +1,6 @@
 {-# LANGUAGE Haskell2010 #-}
 
-module Simplex.ToTeX (toTeX) where
+module Simplex.ToTeX (toTeX, docProps) where
 
 import Simplex.Parser
 import Simplex.Config
@@ -75,10 +75,6 @@ documentClass cfg props
 
           : "]{" : articleType props : ["}\n"]
 
-optionInCfg option cfg v1 v2
-  | option cfg = v1
-  | otherwise  = v2
-  
 packages = [("inputenc", "\\usepackage[utf8]{inputenc}\n"),
             ("fancyhdr", "\\usepackage{fancyhdr}\n"),
             ("tabularx", "\\usepackage{tabularx}\n"),
@@ -119,18 +115,21 @@ packages = [("inputenc", "\\usepackage[utf8]{inputenc}\n"),
 
            ]
 
+docProps doc@(Document blocks props) = props
+
 toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
     where
         cfg' = config cfg doc
         preamble xs =
             documentClass cfg' props
 
-          : optionInCfg oCJK cfg'
-               ("\\usepackage[AutoFakeBold,AutoFakeSlant]{xeCJK}\n" ++
-                "\\setCJKmainfont[BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
-                "\\setCJKsansfont[AutoFakeSlant=false, BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
-                "\\setCJKmonofont[ItalicFont=simkai.ttf]{simsun.ttc}\n")
-               "\\usepackage[utf8]{inputenc}\n"
+          : maybe
+                 "\\usepackage[utf8]{inputenc}\n"
+                 (\x -> "\\usepackage[AutoFakeBold,AutoFakeSlant]{xeCJK}\n" ++
+                        "\\setCJKmainfont[BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
+                        "\\setCJKsansfont[AutoFakeSlant=false, BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
+                        "\\setCJKmonofont[ItalicFont=simkai.ttf]{simsun.ttc}\n")
+                 (lookup "xeCJK" props)
           : maybe
                 ""
                 (\x -> "\\usepackage[" ++ x ++ "]{babel}\n")
@@ -140,7 +139,10 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
           : "\\usepackage{tabularx}\n"
 
           : "\\usepackage{eurosym}\n"
-          : optionInCfg oCJK cfg' "" "\\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
+          : maybe 
+                 "\\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
+                 (\x -> "")
+                 (lookup "xeCJK" props)
 
           : "\\usepackage{amsmath}\n"
           : "\\usepackage{amsfonts}\n"

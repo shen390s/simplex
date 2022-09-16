@@ -120,10 +120,7 @@ process opts file exit = do
         pdflatex = optPdflatex opts
         pdfcrop  = optPdfcrop opts
         convert  = optConvert opts
-        cjk      = optCJK opts
-        latex    = if cjk
-                   then unpack (replace (pack "pdflatex") (pack "xelatex") (pack pdflatex))
-                   else pdflatex
+        xelatex  = unpack (replace (pack "pdflatex") (pack "xelatex") (pack pdflatex))
 
         pdfopts  = ["-interaction=nonstopmode", "-file-line-error"]
 
@@ -154,14 +151,18 @@ process opts file exit = do
     tok <- liftIO $ loadIncludes True (lex c) >>= loadHashbangs
 
     print' "."
-    let cfg = defaultConfig { oStandalone = optType opts == "png",
-                              oCJK = cjk }
+    let cfg = defaultConfig { oStandalone = optType opts == "png" }
 
     (spec, tok') <- liftIO $ if   (optDryRun opts)
                              then (return $ (newSpec, parse tok))
                              else (processSpecials opts newSpec $ parse tok)
 
     let tex = toTeX cfg tok'
+
+    let latex = maybe
+                  latex
+                  (\x -> xelatex)
+                  (lookup "xeCJK" (docProps tok') )
     print' "."
 
     when (optType opts == "tex" || not (optDryRun opts)) $ do

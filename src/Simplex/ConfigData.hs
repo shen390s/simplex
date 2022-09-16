@@ -12,7 +12,6 @@ data Config = Config {
     oFigure :: Bool,
     oStandalone :: Bool,
     oLetter :: Bool,
-    oCJK :: Bool,
     oLetterClosing :: String,
     
     oImageWidth :: Maybe String,
@@ -31,7 +30,6 @@ defaultConfig = Config {
     oFigure = False,
     oStandalone = False,
     oLetter = False,
-    oCJK = False,
     oLetterClosing = "",
     
     oImageWidth = Nothing,
