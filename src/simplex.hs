@@ -15,7 +15,8 @@ import Text.Printf
 import Data.List (sort)
 import Data.Maybe
 import Data.Time
-import Data.Text (replace, pack, unpack)
+import Data.Text (pack, unpack)
+import Data.List.Utils (replace)
 
 import System.Console.GetOpt (usageInfo)
 import System.Directory
@@ -120,7 +121,7 @@ process opts file exit = do
         pdflatex = optPdflatex opts
         pdfcrop  = optPdfcrop opts
         convert  = optConvert opts
-        xelatex  = unpack (replace (pack "pdflatex") (pack "xelatex") (pack pdflatex))
+        xelatex  = replace "pdflatex" "xelatex" pdflatex
 
         pdfopts  = ["-interaction=nonstopmode", "-file-line-error"]
 
