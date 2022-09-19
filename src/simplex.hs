@@ -160,7 +160,7 @@ process opts file exit = do
     let tex = toTeX cfg tok'
 
     let latex = maybe
-                  latex
+                  pdflatex
                   (\x -> xelatex)
                   (lookup "xeCJK" (docProps tok') )
     print' "."

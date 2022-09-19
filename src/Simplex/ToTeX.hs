@@ -263,6 +263,10 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
                 (lookup "tocdepth" props)
 
           : maybe
+                "\\newcommand{\\setkomavar}[2]{} %% FIXME: later\n"
+                (\x -> "")
+                (lookup "letter" props)
+          : maybe
                 ""
                 (\x -> "\\setkomavar{fromaddress}{" ++ escapeTeX' "}\n" x)
                 (lookup "address" props)
