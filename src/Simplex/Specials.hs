@@ -78,10 +78,21 @@ randomString n = do
 
 mkGraph e g opts spec c = do
     file <- randomString 10
+    case e of
+      "dot" -> mkGraphDot e file g opts spec c
+      "neato" -> mkGraphDot e file g opts spec c
+      "gnuplot" -> mkGraphGnuPlot e file g opts spec c
+      _ -> return (spec, [])
 
+
+
+mkGraphDot e file g opts spec c = do
     let spec' = spec { sRemoveFiles = (file ++ ".pdf") : (file ++ ".dot") : sRemoveFiles spec }
     writeFile (file ++ ".dot") (if null g then c else g ++ " G {\n" ++ c ++ "\n}\n")
     
     r <- exec (optVerbose opts) (optGraphviz opts) ["-Tpdf", "-K" ++ e, file ++ ".dot", "-o" ++ file ++ ".pdf"]
-    return (spec', (either (const "") (const $ file ++ ".pdf") r))
+    return (spec', (either (const "") (const $ file ++ ".pdf") r))  
 
+mkGraphGnuPlot e file g opts spec c = do
+    let spec' = spec { sRemoveFiles = (file ++ ".pdf") : (file ++ ".gp") : sRemoveFiles spec }
+    return (spec', [])
