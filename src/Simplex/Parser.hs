@@ -82,6 +82,16 @@ data State = SStart | SNewline | SControl | SControlAfter | SSymbol | SSpace | S
 isBlock (TBlock _) = True
 isBlock _ = False
 
+convertAlias :: String -> String
+convertAlias s =
+  case s of
+    ".chapter" -> "!!"
+    ".part" -> "!!!"
+    ".section" -> "="
+    ".subsection" -> "=="
+    ".subsubsection" -> "==="
+    _ -> s
+
 parse :: [Token] -> Document
 parse = parse' $ Document [] []
 
@@ -327,10 +337,10 @@ lex' l c m SCommand s@(x:xs)
     | otherwise         = lex' l (c+1) (x:m) SCommand xs
 
 lex' l c m SControl s@(x:xs)
-    | x == ' ' && c < 4 = TControl (reverse m) : lex' l (c+1) [] SControlAfter xs
-    | x == ' '          = TControl (reverse m) : lex' l (c+1) [] SSymbol xs
-    | x == '\t'         = TControl (reverse m) : lex' l (c+1) [] SSymbol xs
-    | x == '\n'         = TControl (reverse m) : lex' (l+1) 0 [] SNewline xs
+    | x == ' ' && c < 4 = TControl (convertAlias (reverse m)) : lex' l (c+1) [] SControlAfter xs
+    | x == ' '          = TControl (convertAlias (reverse m)) : lex' l (c+1) [] SSymbol xs
+    | x == '\t'         = TControl (convertAlias (reverse m)) : lex' l (c+1) [] SSymbol xs
+    | x == '\n'         = TControl (convertAlias (reverse m)) : lex' (l+1) 0 [] SNewline xs
     | otherwise         = lex' l (c+1) (x:m) SControl xs
 
 lex' l c m SControlAfter s@(x:xs)
