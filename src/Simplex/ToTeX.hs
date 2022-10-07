@@ -125,10 +125,7 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
 
           : maybe
                  "\\usepackage[utf8]{inputenc}\n"
-                 (\x -> "\\usepackage[AutoFakeBold,AutoFakeSlant]{xeCJK}\n" ++
-                        "\\setCJKmainfont[BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
-                        "\\setCJKsansfont[AutoFakeSlant=false, BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}\n" ++
-                        "\\setCJKmonofont[ItalicFont=simkai.ttf]{simsun.ttc}\n")
+                 (\x -> "\\usepackage[AutoFakeBold,AutoFakeSlant]{xeCJK}\n") 
                  (lookup "xeCJK" props)
           : maybe
                 ""
