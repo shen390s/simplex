@@ -62,6 +62,13 @@ processSpecials' opts spec (BVerbatim "dot" b : xs) = do
                      then BVerbatim "error" "Graphviz .dot failed"
                      else BCommand "image" [pdf]) : rest)
 
+processSpecials' opts spec (BVerbatim "gnuplot" b : xs) = do
+  (spec', pdf) <- mkGraph "gnuplot" "" opts spec b
+  (spec'', rest) <- processSpecials' opts spec' xs
+  return (spec'', (if null pdf
+                   then BVerbatim "error" "Gnuplot .gp failed"
+                   else BCommand "image" [pdf]) : rest)
+
 processSpecials' opts spec (x : xs) = do
     (spec', rest) <- processSpecials' opts spec xs
     return (spec', x : rest)
@@ -95,4 +102,7 @@ mkGraphDot e file g opts spec c = do
 
 mkGraphGnuPlot e file g opts spec c = do
     let spec' = spec { sRemoveFiles = (file ++ ".pdf") : (file ++ ".gp") : sRemoveFiles spec }
-    return (spec', [])
+    writeFile (file ++ ".gp") ("set terminal pdf\n" ++ "set output \"" ++ file ++ ".pdf" ++ "\"\n" ++c ++ "\n")
+
+    r <- exec (optVerbose opts) (optGnuplot opts) [file ++ ".gp"]
+    return (spec', (either (const "") (const $ file ++ ".pdf") r))
