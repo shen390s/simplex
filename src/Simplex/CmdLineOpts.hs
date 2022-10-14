@@ -13,6 +13,8 @@ import Data.Maybe
 data Flag = Help | Verbose | Print | NoClean
           | Pdflatex String | Pdfcrop String
           | Graphviz String | Gnuplot String
+          | Ditaa String | PlantUML String
+          | Mermaid String | Java String
           | Watch Int | DryRun | Type String
           | Density Int | Quality Int | Crop
           | Convert String | Force | Version
@@ -38,7 +40,11 @@ data Opts = Opts {
     optPdflatex :: String,
     optPdfcrop  :: String,
     optGraphviz :: String,
+    optJava     :: String,
     optGnuplot  :: String,
+    optDitaa    :: String,
+    optPlantUML :: String,
+    optMermaid  :: String,
     optConvert  :: String
   }
 
@@ -62,6 +68,10 @@ defOpts = Opts {
     optPdfcrop  = "pdfcrop",
     optGraphviz = "dot",
     optGnuplot  = "gnuplot",
+    optJava     = "java",
+    optDitaa    = "ditaa.jar",
+    optPlantUML = "plantuml.jar",
+    optMermaid  = "mmdc",
     optConvert  = "convert"
   }
 
@@ -80,6 +90,10 @@ cmdOpts = [
         Option "z" ["graphviz"] (ReqArg Graphviz  "") "Path to `dot' (graphviz)",
         Option "g" ["gnuplot"]  (ReqArg Gnuplot   "") "Path to `gnuplot'",
         Option "m" ["convert"]  (ReqArg Convert   "") "Path to `convert' (ImageMagick)",
+        Option ""  ["java"]     (ReqArg Java     "")  "Path to `java'",
+        Option ""  ["mmdc"]     (ReqArg Mermaid  "")  "Path to `mmdc'",
+        Option ""  ["ditaa"]    (ReqArg Ditaa    "")  "Path to ditaai.jar",
+        Option ""  ["plantuml"] (ReqArg PlantUML  "")  "Path to plantuml.jar",
         Option "w" ["watch"]    (OptArg (Watch . read . fromMaybe "2000") "") "Watch files or folder (optionally amount of time in ms)",
         Option "3" ["three-times"] (NoArg ThreeTimes) "Execute `pdflatex' three times instead of the default two times.",
         Option "s" ["symbols"]  (OptArg (ListSymbols . fromMaybe "\\%s\n") "") "Show a list of symboles known to simplex.",
@@ -115,6 +129,10 @@ parseArgs = do
                 Pdflatex c -> opts { optPdflatex = c }
                 Pdfcrop  c -> opts { optPdfcrop  = c }
                 Graphviz c -> opts { optGraphviz = c }
+                Java     c -> opts { optJava    = c }
+                Mermaid  c -> opts { optMermaid =  c }
+                Ditaa    c -> opts { optDitaa   =  c }
+                PlantUML c -> opts { optPlantUML = c }
                 Gnuplot  c -> opts { optGnuplot  = c }
                 Convert  c -> opts { optConvert  = c }
         parseOpts opts _ = opts

@@ -69,6 +69,27 @@ processSpecials' opts spec (BVerbatim "gnuplot" b : xs) = do
                    then BVerbatim "error" "Gnuplot .gp failed"
                    else BCommand "image" [pdf]) : rest)
 
+processSpecials' opts spec (BVerbatim "mermaid" b : xs) = do
+  (spec', pdf) <- mkGraph "mermaid" "" opts spec b
+  (spec'', rest) <- processSpecials' opts spec' xs
+  return (spec'', (if null pdf
+                   then BVerbatim "error" "Mermaid .mmd failed"
+                   else BCommand "image" [pdf]) : rest )
+
+processSpecials' opts spec (BVerbatim "ditaa" b : xs) = do
+  (spec', png) <- mkGraph "ditaa" "" opts spec b
+  (spec'', rest) <- processSpecials' opts spec' xs
+  return (spec'', (if null png
+                   then BVerbatim "error" "ditaa .ditaa failed"
+                   else BCommand "image" [png]) : rest )
+
+processSpecials' opts spec (BVerbatim "plantuml" b : xs) = do
+  (spec', pdf) <- mkGraph "plantuml" "" opts spec b
+  (spec'', rest) <- processSpecials' opts spec' xs
+  return (spec'', (if null pdf
+                   then BVerbatim "error" "plantuml .plantuml failed"
+                   else BCommand "image" [pdf]) : rest )
+
 processSpecials' opts spec (x : xs) = do
     (spec', rest) <- processSpecials' opts spec xs
     return (spec', x : rest)
@@ -89,8 +110,10 @@ mkGraph e g opts spec c = do
       "dot" -> mkGraphDot e file g opts spec c
       "neato" -> mkGraphDot e file g opts spec c
       "gnuplot" -> mkGraphGnuPlot e file g opts spec c
+      "mermaid" -> mkGraphMermaid e file g opts spec c
+      "ditaa" -> mkGraphDitaa e file g opts spec c
+      "plantuml" -> mkGraphPlantUML e file g opts spec c
       _ -> return (spec, [])
-
 
 
 mkGraphDot e file g opts spec c = do
@@ -106,3 +129,27 @@ mkGraphGnuPlot e file g opts spec c = do
 
     r <- exec (optVerbose opts) (optGnuplot opts) [file ++ ".gp"]
     return (spec', (either (const "") (const $ file ++ ".pdf") r))
+
+mkGraphMermaid e file g opts spec c = do
+  let spec' = spec { sRemoveFiles = (file ++ ".pdf") : (file ++ ".mmd") : sRemoveFiles spec}
+  writeFile (file ++ ".mmd") (c ++ "\n")
+
+  r <- exec (optVerbose opts) (optMermaid opts) ["-i", file ++ ".mmd" , "-o", file ++ ".pdf"]
+
+  return (spec', (either (const "") (const $ file ++ ".pdf") r))
+
+mkGraphDitaa e file g opts spec c = do
+  let spec' = spec { sRemoveFiles = (file ++ ".png") : (file ++ ".ditaa") : sRemoveFiles spec}
+  writeFile (file ++ ".ditaa") (c ++ "\n")
+
+  r <- exec (optVerbose opts) (optJava opts) ["-jar", (optDitaa opts),file ++ ".ditaa", file ++ ".png"]
+
+  return (spec', (either (const "") (const $ file ++ ".png") r))
+
+mkGraphPlantUML e file g opts spec c = do
+  let spec' = spec { sRemoveFiles = (file ++ ".png") : (file ++ ".plantuml") : sRemoveFiles spec }
+  writeFile (file ++ ".plantuml") ("@startuml\n" ++ c ++ "\n@enduml\n")
+
+  r <- exec (optVerbose opts) (optJava opts) ["-jar", (optPlantUML opts), file ++ ".plantuml"]
+  
+  return (spec', (either (const "") (const $ file ++ ".png") r))
