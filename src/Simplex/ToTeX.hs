@@ -123,10 +123,20 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
         preamble xs =
             documentClass cfg' props
 
+          : "\\usepackage{iftex}\n"
+          : "\\ifPDFTeX"
+	  : "\\usepackage{lmodern} % pdflatex or dvi latex\n"
+	  : "\\usepackage[T1]{fontenc}\n"
+	  : "\\usepackage[utf8]{inputenc}\n"
+	  : "\\else\n"
+	  : "\\usepackage{fontspec} % XeLaTeX or LuaLaTeX\n"
+	  : "\\fi\n"
           : maybe
-                 "\\usepackage[utf8]{inputenc}\n"
-                 (\x -> "\\usepackage[AutoFakeBold,AutoFakeSlant]{xeCJK}\n") 
-                 (lookup "xeCJK" props)
+                 ""
+                 (\x -> "\\usepackage[heading = true ]{ctex}\n") 
+                 (lookup "cjk" props)
+          : "\\usepackage[\n"
+          : "]{lwarp}"
           : maybe
                 ""
                 (\x -> "\\usepackage[" ++ x ++ "]{babel}\n")
@@ -135,31 +145,31 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
           : "\\usepackage{fancyhdr}\n"
           : "\\usepackage{tabularx}\n"
 
-          : "\\usepackage{eurosym}\n"
+          : "%% \\usepackage{eurosym}\n"
           : maybe 
-                 "\\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
+                 "%% \\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
                  (\x -> "")
-                 (lookup "xeCJK" props)
+                 (lookup "cjk" props)
 
           : "\\usepackage{amsmath}\n"
           : "\\usepackage{amsfonts}\n"
           : "\\usepackage{amssymb}\n"
 
           : "\\usepackage{stmaryrd}\n"
-          : "\\usepackage{wasysym}\n"
+          : "%% \\usepackage{wasysym}\n"
 
-          : "\\let\\EUR\\undefined\n"
-          : "\\usepackage{marvosym}\n"
+          : "%% \\let\\EUR\\undefined\n"
+          : "%% \\usepackage{marvosym}\n"
 
           : "\\usepackage{verbatim}\n"
           : "\\usepackage{listings}\n"
           : "\\usepackage{multicol}\n"
 
           : "\\usepackage[usenames,dvipsnames]{color}\n"
-          : "\\usepackage[table]{xcolor}\n"
-          : "\\usepackage{multirow}\n"
+          : "%% \\usepackage[table]{xcolor}\n"
+          : "%% \\usepackage{multirow}\n"
 
-          : "\\usepackage{lastpage}\n"
+          : "%% \\usepackage{lastpage}\n"
           : "\\usepackage{graphicx}\n"
           : maybe
                 "\\usepackage[section]{placeins}\n"

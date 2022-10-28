@@ -84,7 +84,7 @@ cmdOpts = [
         Option "p" ["print"]    (NoArg Print)         "Print processed tex to stdout.",
         Option "c" ["crop"]     (NoArg Crop)          "Crops the document so that no margins are left.",
         Option "f" ["force"]    (NoArg Force)         "Forces the creation of output files.",
-        Option "tT" ["type"]    (ReqArg Type      "") "Specify type of output (pdf, png, tex)",
+        Option "tT" ["type"]    (ReqArg Type      "") "Specify type of output (pdf, png, tex, html)",
         Option "x" ["pdflatex"] (ReqArg Pdflatex  "") "Path to `pdflatex' executable",
         Option "k" ["pdfcrop"]  (ReqArg Pdfcrop   "") "Path to `pdfcrop'",
         Option "z" ["graphviz"] (ReqArg Graphviz  "") "Path to `dot' (graphviz)",

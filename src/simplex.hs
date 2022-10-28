@@ -122,6 +122,7 @@ process opts file exit = do
         pdfcrop  = optPdfcrop opts
         convert  = optConvert opts
         xelatex  = replace "pdflatex" "xelatex" pdflatex
+        lwarpmk  = replace "pdflatex" "lwarpmk" pdflatex
 
         pdfopts  = ["-interaction=nonstopmode", "-file-line-error"]
 
@@ -163,16 +164,29 @@ process opts file exit = do
     let latex = maybe
                   pdflatex
                   (\x -> xelatex)
-                  (lookup "xeCJK" (docProps tok') )
+                  (lookup "cjk" (docProps tok') )
     print' "."
 
-    when (optType opts == "tex" || not (optDryRun opts)) $ do
+    when (optType opts == "tex" || optType opts == "html" || not (optDryRun opts)) $ do
         -- write tex-file
         r <- liftIO $ try (writeFile (filename ++ ".tex") tex)
         _ <- either (throw . Exc) (return . const Ok) r
         print' "."
 
-    unless (optDryRun opts || optType opts == "tex") $ do
+    when ( optType opts == "html" && not (optDryRun opts )) $ do
+        r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
+        _ <- either (throw' spec . Err . snd) (return . const Ok) r
+        print' "."
+
+        r <- liftIO $ exec verbose lwarpmk (["print"])
+        _ <- either (throw' spec . Err . snd) (return . const Ok) r
+        print' "."
+
+        r <- liftIO $ exec verbose lwarpmk (["html"])
+        _ <- either (throw' spec . Err . snd) (return . const Ok) r
+        print' "."
+        
+    unless (optDryRun opts || optType opts == "tex" || optType opts == "html" ) $ do
         -- run pdflatex/xelatex
         r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
         _ <- either (throw' spec . Err . snd) (return . const Ok) r

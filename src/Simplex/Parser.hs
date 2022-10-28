@@ -324,7 +324,7 @@ lex' l c m SStart s@(x:xs)
     | otherwise         = lex' l (c+1) [x] SControl xs
 
 lex' l c m SNewline s@(x:xs)
-    | x == '\n'         = mkBlock m : lex' (l+1) 0 m SStart xs
+    | x == '\n'         = mkBlock m : lex' (l+1) 0 [] SStart xs
     | x == ' '          = lex' l (c+1) m SSpace xs
     | x == '\t'         = lex' l (c+1) ('\n':m) SSymbol xs
     | isAlpha x         = mkBlock m : lex' l (c+1) [x] SCommand xs
