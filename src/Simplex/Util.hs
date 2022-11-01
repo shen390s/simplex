@@ -70,6 +70,7 @@ skipOneSpace s = s
 
 removeIfExists :: String -> IO ()
 removeIfExists file = do
+    print $ "removing file " ++ file
     exists <- doesFileExist file
     when exists (removeFile file)
 

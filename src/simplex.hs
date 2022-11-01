@@ -173,32 +173,40 @@ process opts file exit = do
         _ <- either (throw . Exc) (return . const Ok) r
         print' "."
 
-    when ( optType opts == "html" && not (optDryRun opts )) $ do
-        r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
-        _ <- either (throw' spec . Err . snd) (return . const Ok) r
-        print' "."
+        when ( optType opts == "html" ) $ do
+          r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
+          _ <- either (throw' spec . Err . snd) (return . const Ok) r
+          print' "."
 
-        r <- liftIO $ exec verbose lwarpmk (["print"])
-        _ <- either (throw' spec . Err . snd) (return . const Ok) r
-        print' "."
+          r <- liftIO $ exec verbose lwarpmk (["print"])
+          _ <- either (throw' spec . Err . snd) (return . const Ok) r
+          print' "."
 
-        r <- liftIO $ exec verbose lwarpmk (["html"])
-        _ <- either (throw' spec . Err . snd) (return . const Ok) r
-        print' "."
+          r <- liftIO $ exec verbose lwarpmk (["html1"])
+          _ <- either (throw' spec . Err . snd) (return . const Ok) r
+          print' "."
+
+          r <- liftIO $ exec verbose lwarpmk (["limages"])
+          _ <- either (throw' spec . Err . snd) (return . const Ok) r
+          print' "."
+
+          r <- liftIO $ exec verbose lwarpmk (["html"])
+          _ <- either (throw' spec . Err . snd) (return . const Ok) r
+          print' "."
         
-    unless (optDryRun opts || optType opts == "tex" || optType opts == "html" ) $ do
-        -- run pdflatex/xelatex
-        r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
-        _ <- either (throw' spec . Err . snd) (return . const Ok) r
-        print' "."
+        unless ( optType opts == "tex" || optType opts == "html" ) $ do
+          -- run pdflatex/xelatex
+          r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
+          _ <- either (throw' spec . Err . snd) (return . const Ok) r
+          print' "."
+  
+          -- run pdflatex/xelatex a second time
+          _ <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
+          print' "."
 
-        -- run pdflatex/xelatex a second time
-        _ <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
-        print' "."
-
-        -- run pdflatex/xelatex a third time if desired
-        when (optThreeTimes opts) $ do { liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
-                                       ; print' "." }
+          -- run pdflatex/xelatex a third time if desired
+          when (optThreeTimes opts) $ do { liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
+                                         ; print' "." }
 
         -- clean files
         unless (optNoClean opts) (liftIO $ do { mapM_ removeIfExists (prepend dirtyExts)
@@ -219,6 +227,9 @@ process opts file exit = do
             r <- liftIO $ exec verbose convert ["-density", show $ optDensity opts, filename ++ ".pdf",
                                                 "-quality", show $ optQuality opts, filename ++ "." ++ filetype]
             _ <- either (throw . Err . snd) (return . const Ok) r
+            return ()
+
+        when (filetype == "html") $ do
             return ()
 
     print' " OK\n"

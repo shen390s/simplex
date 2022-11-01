@@ -35,46 +35,46 @@ processSpecials o s (Document b m) = do
 processSpecials' :: Opts -> Spec -> [Block] -> IO (Spec, [Block])
 
 processSpecials' opts spec (BVerbatim "digraph" b : xs) = do
-    (spec', pdf)   <- mkGraph "dot" "digraph" opts spec b
+    (spec', g)   <- mkGraph "dot" "digraph" opts spec b
     (spec'', rest) <- processSpecials' opts spec' xs
-    return (spec'', (if null pdf
+    return (spec'', (if null g
                      then BVerbatim "error" "Graphviz .digraph failed"
-                     else BCommand "image" [pdf]) : rest)
+                     else BCommand "image" [g]) : rest)
 
 processSpecials' opts spec (BVerbatim "graph" b : xs) = do
-    (spec', pdf)   <- mkGraph "neato" "graph" opts spec b
+    (spec', g)   <- mkGraph "neato" "graph" opts spec b
     (spec'', rest) <- processSpecials' opts spec' xs
-    return (spec'', (if null pdf
+    return (spec'', (if null g
                      then BVerbatim "error" "Graphviz .graph failed"
-                     else BCommand "image" [pdf]) : rest)
+                     else BCommand "image" [g]) : rest)
 
 processSpecials' opts spec (BVerbatim "neato" b : xs) = do
-    (spec', pdf)   <- mkGraph "neato" "" opts spec b
+    (spec', g)   <- mkGraph "neato" "" opts spec b
     (spec'', rest) <- processSpecials' opts spec' xs
-    return (spec'', (if null pdf
+    return (spec'', (if null g
                      then BVerbatim "error" "Graphviz .neato failed"
-                     else BCommand "image" [pdf]) : rest)
+                     else BCommand "image" [g]) : rest)
 
 processSpecials' opts spec (BVerbatim "dot" b : xs) = do
-    (spec', pdf)   <- mkGraph "dot" "" opts spec b
+    (spec', g)   <- mkGraph "dot" "" opts spec b
     (spec'', rest) <- processSpecials' opts spec' xs
-    return (spec'', (if null pdf
+    return (spec'', (if null g
                      then BVerbatim "error" "Graphviz .dot failed"
-                     else BCommand "image" [pdf]) : rest)
+                     else BCommand "image" [g]) : rest)
 
 processSpecials' opts spec (BVerbatim "gnuplot" b : xs) = do
-  (spec', pdf) <- mkGraph "gnuplot" "" opts spec b
+  (spec', g) <- mkGraph "gnuplot" "" opts spec b
   (spec'', rest) <- processSpecials' opts spec' xs
-  return (spec'', (if null pdf
+  return (spec'', (if null g
                    then BVerbatim "error" "Gnuplot .gp failed"
-                   else BCommand "image" [pdf]) : rest)
+                   else BCommand "image" [g]) : rest)
 
 processSpecials' opts spec (BVerbatim "mermaid" b : xs) = do
-  (spec', pdf) <- mkGraph "mermaid" "" opts spec b
+  (spec', g) <- mkGraph "mermaid" "" opts spec b
   (spec'', rest) <- processSpecials' opts spec' xs
-  return (spec'', (if null pdf
+  return (spec'', (if null g
                    then BVerbatim "error" "Mermaid .mmd failed"
-                   else BCommand "image" [pdf]) : rest )
+                   else BCommand "image" [g]) : rest )
 
 processSpecials' opts spec (BVerbatim "ditaa" b : xs) = do
   (spec', png) <- mkGraph "ditaa" "" opts spec b
@@ -84,11 +84,11 @@ processSpecials' opts spec (BVerbatim "ditaa" b : xs) = do
                    else BCommand "image" [png]) : rest )
 
 processSpecials' opts spec (BVerbatim "plantuml" b : xs) = do
-  (spec', pdf) <- mkGraph "plantuml" "" opts spec b
+  (spec', g) <- mkGraph "plantuml" "" opts spec b
   (spec'', rest) <- processSpecials' opts spec' xs
-  return (spec'', (if null pdf
+  return (spec'', (if null g
                    then BVerbatim "error" "plantuml .plantuml failed"
-                   else BCommand "image" [pdf]) : rest )
+                   else BCommand "image" [g]) : rest )
 
 processSpecials' opts spec (x : xs) = do
     (spec', rest) <- processSpecials' opts spec xs
@@ -106,6 +106,7 @@ randomString n = do
 
 mkGraph e g opts spec c = do
     file <- randomString 10
+    print $ file ++ "." ++ e
     case e of
       "dot" -> mkGraphDot e file g opts spec c
       "neato" -> mkGraphDot e file g opts spec c
@@ -117,26 +118,26 @@ mkGraph e g opts spec c = do
 
 
 mkGraphDot e file g opts spec c = do
-    let spec' = spec { sRemoveFiles = (file ++ ".pdf") : (file ++ ".dot") : sRemoveFiles spec }
+    let spec' = spec { sRemoveFiles = (file ++ ".jpeg") : (file ++ ".dot") : sRemoveFiles spec }
     writeFile (file ++ ".dot") (if null g then c else g ++ " G {\n" ++ c ++ "\n}\n")
     
-    r <- exec (optVerbose opts) (optGraphviz opts) ["-Tpdf", "-K" ++ e, file ++ ".dot", "-o" ++ file ++ ".pdf"]
-    return (spec', (either (const "") (const $ file ++ ".pdf") r))  
+    r <- exec (optVerbose opts) (optGraphviz opts) ["-Tjpeg", "-K" ++ e, file ++ ".dot", "-o" ++ file ++ ".jpeg"]
+    return (spec', (either (const "") (const $ file ++ ".jpeg") r))  
 
 mkGraphGnuPlot e file g opts spec c = do
-    let spec' = spec { sRemoveFiles = (file ++ ".pdf") : (file ++ ".gp") : sRemoveFiles spec }
-    writeFile (file ++ ".gp") ("set terminal pdf\n" ++ "set output \"" ++ file ++ ".pdf" ++ "\"\n" ++c ++ "\n")
+    let spec' = spec { sRemoveFiles = (file ++ ".jpeg") : (file ++ ".gp") : sRemoveFiles spec }
+    writeFile (file ++ ".gp") ("set terminal jpeg\n" ++ "set output \"" ++ file ++ ".jpeg" ++ "\"\n" ++c ++ "\n")
 
     r <- exec (optVerbose opts) (optGnuplot opts) [file ++ ".gp"]
-    return (spec', (either (const "") (const $ file ++ ".pdf") r))
+    return (spec', (either (const "") (const $ file ++ ".jpeg") r))
 
 mkGraphMermaid e file g opts spec c = do
-  let spec' = spec { sRemoveFiles = (file ++ ".pdf") : (file ++ ".mmd") : sRemoveFiles spec}
+  let spec' = spec { sRemoveFiles = (file ++ ".png") : (file ++ ".mmd") : sRemoveFiles spec}
   writeFile (file ++ ".mmd") (c ++ "\n")
 
-  r <- exec (optVerbose opts) (optMermaid opts) ["-i", file ++ ".mmd" , "-o", file ++ ".pdf"]
+  r <- exec (optVerbose opts) (optMermaid opts) ["-i", file ++ ".mmd" , "-o", file ++ ".png"]
 
-  return (spec', (either (const "") (const $ file ++ ".pdf") r))
+  return (spec', (either (const "") (const $ file ++ ".png") r))
 
 mkGraphDitaa e file g opts spec c = do
   let spec' = spec { sRemoveFiles = (file ++ ".png") : (file ++ ".ditaa") : sRemoveFiles spec}
