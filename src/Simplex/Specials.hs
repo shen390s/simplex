@@ -106,7 +106,6 @@ randomString n = do
 
 mkGraph e g opts spec c = do
     file <- randomString 10
-    print $ file ++ "." ++ e
     case e of
       "dot" -> mkGraphDot e file g opts spec c
       "neato" -> mkGraphDot e file g opts spec c
@@ -118,21 +117,27 @@ mkGraph e g opts spec c = do
 
 
 mkGraphDot e file g opts spec c = do
-    let spec' = spec { sRemoveFiles = (file ++ ".jpeg") : (file ++ ".dot") : sRemoveFiles spec }
+    let spec' = if (optType opts == "html")
+                then spec { sRemoveFiles = (file ++ ".dot") : sRemoveFiles spec }
+                else spec { sRemoveFiles = (file ++ ".jpeg") : (file ++ ".dot") : sRemoveFiles spec}
     writeFile (file ++ ".dot") (if null g then c else g ++ " G {\n" ++ c ++ "\n}\n")
     
     r <- exec (optVerbose opts) (optGraphviz opts) ["-Tjpeg", "-K" ++ e, file ++ ".dot", "-o" ++ file ++ ".jpeg"]
     return (spec', (either (const "") (const $ file ++ ".jpeg") r))  
 
 mkGraphGnuPlot e file g opts spec c = do
-    let spec' = spec { sRemoveFiles = (file ++ ".jpeg") : (file ++ ".gp") : sRemoveFiles spec }
+    let spec' = if (optType opts == "html" )
+                then spec { sRemoveFiles = (file ++ ".gp") : sRemoveFiles spec }
+                else spec { sRemoveFiles = (file ++ ".jpeg") : (file ++ ".gp") : sRemoveFiles spec }
     writeFile (file ++ ".gp") ("set terminal jpeg\n" ++ "set output \"" ++ file ++ ".jpeg" ++ "\"\n" ++c ++ "\n")
 
     r <- exec (optVerbose opts) (optGnuplot opts) [file ++ ".gp"]
     return (spec', (either (const "") (const $ file ++ ".jpeg") r))
 
 mkGraphMermaid e file g opts spec c = do
-  let spec' = spec { sRemoveFiles = (file ++ ".png") : (file ++ ".mmd") : sRemoveFiles spec}
+  let spec' = if (optType opts == "html")
+              then spec { sRemoveFiles = (file ++ ".mmd") : sRemoveFiles spec}
+              else spec { sRemoveFiles = (file ++ ".png") : (file ++ ".mmd") : sRemoveFiles spec}
   writeFile (file ++ ".mmd") (c ++ "\n")
 
   r <- exec (optVerbose opts) (optMermaid opts) ["-i", file ++ ".mmd" , "-o", file ++ ".png"]
@@ -140,7 +145,9 @@ mkGraphMermaid e file g opts spec c = do
   return (spec', (either (const "") (const $ file ++ ".png") r))
 
 mkGraphDitaa e file g opts spec c = do
-  let spec' = spec { sRemoveFiles = (file ++ ".png") : (file ++ ".ditaa") : sRemoveFiles spec}
+  let spec' = if (optType opts == "html")
+              then spec { sRemoveFiles = (file ++ ".ditaa") : sRemoveFiles spec}
+              else spec { sRemoveFiles = (file ++ ".png") : (file ++ ".ditaa") : sRemoveFiles spec}
   writeFile (file ++ ".ditaa") (c ++ "\n")
 
   r <- exec (optVerbose opts) (optJava opts) ["-jar", (optDitaa opts),file ++ ".ditaa", file ++ ".png"]
@@ -148,7 +155,9 @@ mkGraphDitaa e file g opts spec c = do
   return (spec', (either (const "") (const $ file ++ ".png") r))
 
 mkGraphPlantUML e file g opts spec c = do
-  let spec' = spec { sRemoveFiles = (file ++ ".png") : (file ++ ".plantuml") : sRemoveFiles spec }
+  let spec' = if (optType opts == "html")
+              then spec { sRemoveFiles = (file ++ ".plantuml") : sRemoveFiles spec }
+              else spec { sRemoveFiles = (file ++ ".png") : (file ++ ".plantuml") : sRemoveFiles spec }
   writeFile (file ++ ".plantuml") ("@startuml\n" ++ c ++ "\n@enduml\n")
 
   r <- exec (optVerbose opts) (optJava opts) ["-jar", (optPlantUML opts), file ++ ".plantuml"]
