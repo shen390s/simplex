@@ -136,7 +136,11 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
                  (\x -> "\\usepackage[heading = true ]{ctex}\n") 
                  (lookup "cjk" props)
           : "\\usepackage[\n"
-          : "]{lwarp}"
+          : "]{lwarp}\n"
+          : "\\setcounter{FileDepth}{0}\n"
+          : "\\setcounter{SideTOCDepth}{2}\n"
+          : "\\boolfalse{FileSectionNames}\n"
+          : "\\CSSFilename{sample_project.css}\n"
           : maybe
                 ""
                 (\x -> "\\usepackage[" ++ x ++ "]{babel}\n")
