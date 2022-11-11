@@ -123,6 +123,7 @@ process opts file exit = do
         convert  = optConvert opts
         xelatex  = replace "pdflatex" "xelatex" pdflatex
         lwarpmk  = replace "pdflatex" "lwarpmk" pdflatex
+        latexmk  = replace "pdflatex" "latexmk" pdflatex
 
         pdfopts  = ["-interaction=nonstopmode", "-file-line-error"]
 
@@ -161,10 +162,14 @@ process opts file exit = do
 
     let tex = toTeX cfg tok'
 
+    let latexopt = maybe
+                   "-latex"
+                   (\x -> "-xelatex")
+                   (lookup "cjk" (docProps tok'))
     let latex = maybe
-                  pdflatex
-                  (\x -> xelatex)
-                  (lookup "cjk" (docProps tok') )
+                pdflatex
+                (\x -> "xelatex")
+                (lookup "cjk" (docProps tok'))
     print' "."
 
     when (optType opts == "tex" || optType opts == "html" || not (optDryRun opts)) $ do
@@ -174,26 +179,14 @@ process opts file exit = do
         print' "."
 
         when ( optType opts == "html" ) $ do
-          r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])
-          _ <- either (throw' spec . Err . snd) (return . const Ok) r
-          print' "."
+           r <- liftIO $ exec verbose latexmk ["-pdf", latexopt, filename ++ ".tex"] 
+           _ <- either (throw' spec . Err . snd) (return . const Ok) r
+           print' "."
 
-          r <- liftIO $ exec verbose lwarpmk (["print"])
-          _ <- either (throw' spec . Err . snd) (return . const Ok) r
-          print' "."
+           r <- liftIO $ exec verbose lwarpmk ["html1"]
+           _ <- either (throw' spec . Err . snd) (return . const Ok) r
+           print' "."
 
-          r <- liftIO $ exec verbose lwarpmk (["html1"])
-          _ <- either (throw' spec . Err . snd) (return . const Ok) r
-          print' "."
-
-          r <- liftIO $ exec verbose lwarpmk (["limages"])
-          _ <- either (throw' spec . Err . snd) (return . const Ok) r
-          print' "."
-
-          r <- liftIO $ exec verbose lwarpmk (["html"])
-          _ <- either (throw' spec . Err . snd) (return . const Ok) r
-          print' "."
-        
         unless ( optType opts == "tex" || optType opts == "html" ) $ do
           -- run pdflatex/xelatex
           r <- liftIO $ exec verbose latex (pdfopts ++ [filename ++ ".tex"])

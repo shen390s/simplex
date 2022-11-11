@@ -125,22 +125,35 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
 
           : "\\usepackage{iftex}\n"
           : "\\ifPDFTeX"
-	  : "\\usepackage{lmodern} % pdflatex or dvi latex\n"
-	  : "\\usepackage[T1]{fontenc}\n"
-	  : "\\usepackage[utf8]{inputenc}\n"
-	  : "\\else\n"
-	  : "\\usepackage{fontspec} % XeLaTeX or LuaLaTeX\n"
-	  : "\\fi\n"
+          : "\\usepackage{lmodern} % pdflatex or dvi latex\n"
+          : "\\usepackage[T1]{fontenc}\n"
+          : "\\usepackage[utf8]{inputenc}\n"
+          : "\\else\n"
+          : "\\usepackage{fontspec} % XeLaTeX or LuaLaTeX\n"
+          : "\\fi\n"
           : maybe
                  ""
                  (\x -> "\\usepackage[heading = true ]{ctex}\n") 
                  (lookup "cjk" props)
           : "\\usepackage[\n"
+          : "latexmk\n"
           : "]{lwarp}\n"
-          : "\\setcounter{FileDepth}{0}\n"
-          : "\\setcounter{SideTOCDepth}{2}\n"
-          : "\\boolfalse{FileSectionNames}\n"
-          : "\\CSSFilename{sample_project.css}\n"
+          : maybe
+               ""
+               (\x -> "\\setcounter{FileDepth}{" ++ x ++ "}\n")
+               (lookup "filedepth" props)
+          : maybe
+               ""
+               (\x -> "\\setcounter{SideTOCDepth}{" ++ x ++ "}\n")
+               (lookup "sidetocdepth" props)
+          : maybe
+               ""
+               (\x -> "\\boolfalse{FileSectionNames}\n")
+               (lookup "nofilesectionnames" props)
+          : maybe
+               ""
+               (\x -> "\\CSSFilename{" ++ x ++ "}\n")
+               (lookup "css" props)
           : maybe
                 ""
                 (\x -> "\\usepackage[" ++ x ++ "]{babel}\n")
