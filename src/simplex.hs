@@ -28,6 +28,7 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Control.Monad.Cont
+import Control.Monad.Trans (liftIO)
 
 versionInfo = "Simplex -- Simple LaTeX -- v0.3.8 by Julian Fleischer"
 

@@ -453,8 +453,14 @@ toTeX' opt (BVerbatim "python" l : xs)
 toTeX' opt (BVerbatim "haskell" l : xs)
     = "\\begin{lstlisting}[language = haskell]\n" : l : "\\end{lstlisting}\n" : toTeX' opt xs
 
+toTeX' opt (BVerbatim "shell" l : xs)
+    = "\\begin{lstlisting}[language = shell]\n" : l : "\n\\end{lstlisting}\n" : toTeX' opt xs
+      
 toTeX' opt (BVerbatim "math" l : xs)
     = "\\begin{displaymath}\n" : safeTeX l : "\\end{displaymath}\n" : toTeX' opt xs
+
+toTeX' opt (BVerbatim "c" l : xs)
+    = "\\begin{lstlisting}[language = c]\n" : l : "\n\\end{lstlisting}\n" : toTeX' opt xs
 
 toTeX' opt (BVerbatim "equation" l : xs)
     = "\\begin{equation}\n" : safeTeX l : "\\end{equation}\n" : toTeX' opt xs
