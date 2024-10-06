@@ -133,7 +133,7 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
           : "\\fi\n"
           : maybe
                  ""
-                 (\x -> "\\usepackage[heading = true ]{ctex}\n") 
+                 (\x -> "\\usepackage[heading = true, fontset=" ++ x ++ "]{ctex}\n") 
                  (lookup "cjk" props)
           : "\\usepackage[\n"
           : "latexmk\n"
@@ -148,7 +148,7 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
                (lookup "sidetocdepth" props)
           : maybe
                ""
-               (\x -> "\\boolfalse{FileSectionNames}\n")
+               (const "\\boolfalse{FileSectionNames}\n")
                (lookup "nofilesectionnames" props)
           : maybe
                ""
@@ -165,7 +165,7 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
           : "%% \\usepackage{eurosym}\n"
           : maybe 
                  "%% \\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
-                 (\x -> "")
+                 (const "")
                  (lookup "cjk" props)
 
           : "\\usepackage{amsmath}\n"

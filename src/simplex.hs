@@ -165,11 +165,11 @@ process opts file exit = do
 
     let latexopt = maybe
                    "-latex"
-                   (\x -> "-xelatex")
+                   (const "-xelatex")
                    (lookup "cjk" (docProps tok'))
     let latex = maybe
                 pdflatex
-                (\x -> "xelatex")
+                (const "xelatex")
                 (lookup "cjk" (docProps tok'))
     print' "."
 
