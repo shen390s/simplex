@@ -11,3 +11,8 @@ bin
 target
 .DS_Store
 _darcs
+
+
+# Nix build output
+result
+result-*
