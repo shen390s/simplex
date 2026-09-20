@@ -75,46 +75,6 @@ documentClass cfg props
 
           : "]{" : articleType props : ["}\n"]
 
-packages = [("inputenc", "\\usepackage[utf8]{inputenc}\n"),
-            ("fancyhdr", "\\usepackage{fancyhdr}\n"),
-            ("tabularx", "\\usepackage{tabularx}\n"),
-            ("eurosym",  "\\usepackage{eurosym}\n"
-                         ++ "\\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"),
-
-            ("amsmath",  "\\usepackage{amsmath}\n"),
-            ("amsfonts", "\\usepackage{amsfonts}\n"),
-            ("amssymb",  "\\usepackage{amssymb}\n"),
-            ("stmaryrd", "\\usepackage{stmaryrd}\n"),
-            ("wasysym",  "\\usepackage{wasysym}\n"),
-            ("marvosym", "\\let\\EUR\\undefined"
-                         ++ "\n\\usepackage{marvosym}\n"),
-
-            ("verbatim", "\\usepackage{verbatim}\n"),
-            ("listings", "\\usepackage{listings}\n"),
-            ("multicol", "\\usepackage{multicol}\n"),
-          
-            ("color",    "\\usepackage[usenames,dvipsnames]{color}\n"),
-            ("xcolor",   "\\usepackage[table]{xcolor}\n"),
-            ("multirow", "\\usepackage{multirow}\n"),
-
-            ("lastpage", "\\usepackage{lastpage}\n"),
-            ("graphicx", "\\usepackage{graphicx}\n"),
-
-            ("hyperref", "\\usepackage["
-                         ++ "colorlinks,"
-                         ++ "pdfpagelabels,"
-                         ++ "pdfstartview=FitH,"
-                         ++ "bookmarksopen=true,"
-                         ++ "bookmarksnumbered=true,"
-                         ++ "linkcolor=black,"
-                         ++ "plainpages=false,"
-                         ++ "hypertexnames=false,"
-                         ++ "citecolor=black,"
-                         ++ "urlcolor=black]"
-                         ++ "{hyperref}\n")
-
-           ]
-
 docProps doc@(Document blocks props) = props
 
 toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
@@ -162,31 +122,21 @@ toTeX cfg doc@(Document blocks props) = concat $ preamble $ toTeX' cfg' $ blocks
           : "\\usepackage{fancyhdr}\n"
           : "\\usepackage{tabularx}\n"
 
-          : "%% \\usepackage{eurosym}\n"
-          : maybe 
-                 "%% \\DeclareUnicodeCharacter{20AC}{\\euro{}}\n"
-                 (\x -> "")
-                 (lookup "cjk" props)
-
           : "\\usepackage{amsmath}\n"
           : "\\usepackage{amsfonts}\n"
           : "\\usepackage{amssymb}\n"
 
           : "\\usepackage{stmaryrd}\n"
-          : "%% \\usepackage{wasysym}\n"
-
-          : "%% \\let\\EUR\\undefined\n"
-          : "%% \\usepackage{marvosym}\n"
 
           : "\\usepackage{verbatim}\n"
           : "\\usepackage{listings}\n"
           : "\\usepackage{multicol}\n"
 
           : "\\usepackage[usenames,dvipsnames]{color}\n"
-          : "%% \\usepackage[table]{xcolor}\n"
-          : "%% \\usepackage{multirow}\n"
+          : "\\usepackage[table]{xcolor}\n"
+          : "\\usepackage{multirow}\n"
 
-          : "%% \\usepackage{lastpage}\n"
+          : "\\usepackage{lastpage}\n"
           : "\\usepackage{graphicx}\n"
           : maybe
                 "\\usepackage[section]{placeins}\n"
