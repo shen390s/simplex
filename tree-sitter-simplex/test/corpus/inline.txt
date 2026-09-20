@@ -1,0 +1,53 @@
+================================================================================
+Inline markup in a paragraph
+================================================================================
+
+.   This is **bold** and *italic* and _underlined_
+
+--------------------------------------------------------------------------------
+
+(document
+  (paragraph
+    (inline_text
+      (text)
+      (bold (text_content))
+      (text)
+      (italic (text_content))
+      (text)
+      (underline (text_content)))))
+
+================================================================================
+Math, smallcaps and symbol
+================================================================================
+
+.   This is $M_{ath}^2$ and //Caps// with \alpha
+
+--------------------------------------------------------------------------------
+
+(document
+  (paragraph
+    (inline_text
+      (text)
+      (math (math_content))
+      (text)
+      (smallcaps (text_content))
+      (text)
+      (symbol))))
+
+================================================================================
+Links, references and footnotes
+================================================================================
+
+.   See \[http://example.org Site] and \<sec:one> \^a note^
+
+--------------------------------------------------------------------------------
+
+(document
+  (paragraph
+    (inline_text
+      (text)
+      (link (link_content))
+      (text)
+      (reference (ref_label))
+      (text)
+      (footnote (footnote_content)))))

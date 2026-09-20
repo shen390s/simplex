@@ -1,0 +1,25 @@
+{
+  "grammars": [
+    {
+      "name": "simplex",
+      "camelcase": "Simplex",
+      "scope": "source.simplex",
+      "path": ".",
+      "file-types": [
+        "simplex"
+      ],
+      "highlights": [
+        "queries/highlights.scm"
+      ],
+      "injection-regex": "^simplex$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Tree-sitter grammar for the Simplex (Simple LaTeX) document format",
+    "links": {
+      "repository": "https://github.com/scravy/simplex"
+    }
+  }
+}

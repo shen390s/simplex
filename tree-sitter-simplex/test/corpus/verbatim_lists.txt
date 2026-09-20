@@ -1,0 +1,71 @@
+================================================================================
+Verbatim code block
+================================================================================
+
+.code
+    main = putStrLn "hi"
+
+--------------------------------------------------------------------------------
+
+(document
+  (verbatim
+    kind: (verbatim_marker)
+    body: (block)))
+
+================================================================================
+Verbatim shortcut and math block
+================================================================================
+
+.#
+    some code
+
+.$
+    x^2 + 1
+
+--------------------------------------------------------------------------------
+
+(document
+  (verbatim
+    kind: (verbatim_marker)
+    body: (block))
+  (verbatim
+    kind: (verbatim_marker)
+    body: (block)))
+
+================================================================================
+Itemize list
+================================================================================
+
+*   One
+**  One-One
+*   Two
+
+--------------------------------------------------------------------------------
+
+(document
+  (itemize
+    (item_bullet
+      marker: (item_marker)
+      text: (block_or_line (inline (text))))
+    (item_bullet
+      marker: (item_marker)
+      text: (block_or_line (inline (text))))
+    (item_bullet
+      marker: (item_marker)
+      text: (block_or_line (inline (text))))))
+
+================================================================================
+Command and include
+================================================================================
+
+newpage
+
+#include chapter1.simplex
+
+--------------------------------------------------------------------------------
+
+(document
+  (command name: (command_name))
+  (include
+    directive: (include_directive)
+    target: (inline_args)))
