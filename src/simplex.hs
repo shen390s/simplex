@@ -23,13 +23,14 @@ import System.Directory
 import System.FilePath
 import System.Environment (getArgs, getProgName)
 import System.IO
+import GHC.IO.Encoding (setLocaleEncoding)
 
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Control.Monad.Cont
 
-versionInfo = "Simplex -- Simple LaTeX -- v0.3.8 by Julian Fleischer"
+versionInfo = "Simplex -- Simple LaTeX -- v0.4.0 by Julian Fleischer"
 
 dirtyExts = [".toc", ".aux", ".log", ".tex", ".out", ".lof", ".ent"]
 
@@ -49,7 +50,16 @@ gatherChangedFiles ext dir = do
 
 
 main :: IO ()
-main = parseArgs >>= either (uncurry simplex) (mapM_ putStr)
+main = do
+    -- Force UTF-8 for all default-encoded handles (files opened without an
+    -- explicit encoding and, crucially, subprocess pipes read via
+    -- readProcessWithExitCode).  Without this, running under a non-UTF-8
+    -- locale (e.g. the C locale) makes hGetContents crash with
+    -- "invalid argument (cannot decode byte sequence ...)" as soon as a
+    -- tool's output or an included file contains non-ASCII bytes (such as
+    -- CJK text handled via @cjk).
+    setLocaleEncoding utf8
+    parseArgs >>= either (uncurry simplex) (mapM_ putStr)
 
 
 simplex :: Opts -> [String] -> IO ()

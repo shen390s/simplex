@@ -1,5 +1,5 @@
 Name:               simplex
-Version:            0.3.8
+Version:            0.4.0
 Synopsis:           A simple markup language that translates to LaTeX
 Description:        A simple markup language that translates to LaTeX
                     .
@@ -25,6 +25,22 @@ Description:        A simple markup language that translates to LaTeX
                     [@v0.3.8@]
                     Added @--symbols@ command line switch.
                     Added @ent@ to the list of dirty extensions.
+                    .
+                    [@v0.4.0@]
+                    New diagram and plotting verbatim blocks: @.gnuplot@,
+                    @.mermaid@, @.ditaa@ and @.plantuml@ (in addition to the
+                    existing Graphviz blocks). Graphviz images are now rendered
+                    as JPEG. Added HTML output (@--type=html@) built via
+                    @lwarp@/@latexmk@, with the new @\@filedepth@,
+                    @\@sidetocdepth@, @\@nofilesectionnames@ and @\@css@
+                    directives. Added CJK / Chinese support via @\@cjk@ (ctex +
+                    XeLaTeX) and an @iftex@/@fontspec@ based font mechanism.
+                    Added word-style section aliases (@.part@, @.chapter@,
+                    @.section@, @.subsection@, @.subsubsection@). Added the
+                    @--java@, @--mmdc@, @--ditaa@ and @--plantuml@ options.
+                    Added a tree-sitter grammar and an Emacs major mode
+                    (@simplex-ts-mode@) for editing @.simplex@ files, and a Nix
+                    flake for reproducible builds.
 
 Category:           LaTeX
 Stability:          provisional
@@ -35,8 +51,8 @@ Maintainer:         Julian Fleischer <julian.fleischer@fu-berlin.de>
 Build-Type:         Simple
 Cabal-Version:      >= 1.8
 
-Extra-Source-Files: Simplex-v0.3.8.pdf,
-                    doc/Simplex-v0.3.8.simplex,
+Extra-Source-Files: Simplex-v0.4.0.pdf,
+                    doc/Simplex-v0.4.0.simplex,
                     doc/bushes.jpg,
                     doc/duck.jpg,
                     doc/zebra.jpg,
@@ -51,7 +67,7 @@ Source-Repository head
 Source-Repository this
     type: git
     location: https://github.com/scravy/simplex.git
-    tag: v0.3.8
+    tag: v0.4.0
 
 Executable simplex
     Hs-Source-Dirs:     src
@@ -72,6 +88,7 @@ Executable simplex
                         , process      >= 1.1.0.1
                         , filepath     >= 1.3.0.0
                         , directory    >= 1.2.0.0
+                        , deepseq      >= 1.3
                         , split        >= 0.2.1.1
                         , regex-compat >= 0.95.1
                         , mtl          >= 2.0.1

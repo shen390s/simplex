@@ -103,10 +103,33 @@ uninstall:
 		'$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/$(LANGUAGE_NAME).h \
 		'$(DESTDIR)$(PCLIBDIR)'/$(LANGUAGE_NAME).pc
 
+# ---------------------------------------------------------------------------
+# Emacs (treesit) install: build the shared object with the plain C
+# toolchain (no libtool versioning needed here, Emacs just dlopen()s it) and
+# drop it where Emacs' built-in `treesit' looks by default, so
+# `simplex-ts-mode' always uses the grammar that matches this checkout.
+#
+# IMPORTANT: rerun `make install-emacs` (or `M-x simplex-ts-mode-install-grammar`
+# in Emacs) after editing grammar.js or src/scanner.c. Emacs does not detect
+# or rebuild a stale grammar on its own; an out-of-date .so can silently keep
+# old bugs (including hangs/high memory use on certain input) around after
+# they have been fixed in this repository.
+# ---------------------------------------------------------------------------
+EMACS_TS_DIR ?= $(HOME)/.emacs.d/tree-sitter
+EMACS_TS_LIB := lib$(LANGUAGE_NAME).$(SOEXT)
+
+install-emacs: $(EMACS_TS_LIB)
+	install -d '$(EMACS_TS_DIR)'
+	install -m755 $(EMACS_TS_LIB) '$(EMACS_TS_DIR)'/$(EMACS_TS_LIB)
+	@echo "Installed $(EMACS_TS_LIB) to $(EMACS_TS_DIR)"
+
+uninstall-emacs:
+	$(RM) '$(EMACS_TS_DIR)'/$(EMACS_TS_LIB)
+
 clean:
 	$(RM) $(OBJS) $(LANGUAGE_NAME).pc lib$(LANGUAGE_NAME).a lib$(LANGUAGE_NAME).$(SOEXT)
 
 test:
 	$(TS) test
 
-.PHONY: all install uninstall clean test
+.PHONY: all install uninstall install-emacs uninstall-emacs clean test

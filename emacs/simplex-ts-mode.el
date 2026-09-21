@@ -26,10 +26,28 @@
 ;;
 ;; Installation:
 ;;
-;;   1. Ensure the grammar is installed where Emacs can find it.  Either build
-;;      and copy the shared object into `treesit-extra-load-path', or add an
-;;      entry to `treesit-language-source-alist' and run
-;;      `treesit-install-language-grammar':
+;;   1. Ensure the grammar is installed where Emacs can find it. The
+;;      simplest way is to build it from this repository and let Emacs'
+;;      default `treesit' lookup path pick it up:
+;;
+;;        (require 'simplex-ts-mode)
+;;        (simplex-ts-mode-install-grammar)
+;;
+;;      This runs "make install-emacs" in `simplex-ts-mode-source-dir'
+;;      (tree-sitter-simplex/ next to this file by default) and copies the
+;;      resulting shared library into `simplex-ts-mode-grammar-dir'
+;;      (~/.emacs.d/tree-sitter/ by default).
+;;
+;;      Re-run `simplex-ts-mode-install-grammar' whenever grammar.js or
+;;      src/scanner.c change -- Emacs does not rebuild or refresh the
+;;      installed grammar on its own, and a stale .so can silently keep old
+;;      bugs around (this has previously caused multi-minute hangs and
+;;      unbounded memory growth on certain input, including an empty
+;;      buffer). `simplex-ts-mode' warns once per buffer if the installed
+;;      grammar looks older than the checked-out source.
+;;
+;;      Alternatively, add an entry to `treesit-language-source-alist' and
+;;      run `treesit-install-language-grammar':
 ;;
 ;;        (add-to-list
 ;;         'treesit-language-source-alist
@@ -57,6 +75,29 @@
   "Editing support for Simplex (Simple LaTeX) documents."
   :group 'text
   :prefix "simplex-")
+
+(defcustom simplex-ts-mode-grammar-dir
+  (expand-file-name "tree-sitter" user-emacs-directory)
+  "Directory Emacs' built-in `treesit' loads the Simplex grammar from.
+
+This is where `simplex-ts-mode-install-grammar' installs the shared
+library, and where `simplex-ts-mode' looks to warn about a stale grammar.
+Matches the default `treesit' lookup path and the `EMACS_TS_DIR' used by
+`tree-sitter-simplex/Makefile's `install-emacs' target."
+  :type 'directory
+  :group 'simplex)
+
+(defcustom simplex-ts-mode-source-dir
+  (let ((this-dir (file-name-directory (or load-file-name buffer-file-name
+                                            default-directory))))
+    (expand-file-name "../tree-sitter-simplex/" this-dir))
+  "Directory of the `tree-sitter-simplex' grammar checkout.
+
+Used by `simplex-ts-mode-install-grammar' (to run \"make install-emacs\"
+there) and by the stale-grammar check performed when `simplex-ts-mode' is
+enabled."
+  :type 'directory
+  :group 'simplex)
 
 (defcustom simplex-ts-mode-indent-offset 4
   "Preferred size of one Simplex indentation step, in spaces.
@@ -225,6 +266,98 @@ that a zero offset preserves the line's current indentation."
      ((looking-at-p "=")   3)   ; section
      (t 6))))
 
+;;; Grammar installation / staleness check ------------------------------------
+
+;; The grammar ships as source (tree-sitter-simplex/) and must be compiled to
+;; a shared library that Emacs dlopen()s. Emacs never rebuilds or refreshes
+;; that library on its own: if grammar.js or src/scanner.c change but the
+;; installed .so is not rebuilt, `simplex-ts-mode' keeps running the old,
+;; possibly buggy grammar with no indication anything is wrong (this has
+;; previously manifested as multi-minute hangs / unbounded memory growth on
+;; certain inputs, including something as simple as an empty buffer). These
+;; helpers make it easy to keep the installed grammar in sync and to notice
+;; when it has drifted.
+
+(defun simplex-ts-mode--grammar-library-path ()
+  "Return the path `simplex-ts-mode-install-grammar' installs to, or nil."
+  (let ((name (cond ((eq system-type 'darwin) "libtree-sitter-simplex.dylib")
+                     ((memq system-type '(windows-nt ms-dos)) "tree-sitter-simplex.dll")
+                     (t "libtree-sitter-simplex.so"))))
+    (expand-file-name name simplex-ts-mode-grammar-dir)))
+
+;;;###autoload
+(defun simplex-ts-mode-install-grammar (&optional callback)
+  "Build the Simplex tree-sitter grammar and install it for Emacs.
+
+Runs \"make install-emacs\" in `simplex-ts-mode-source-dir', which compiles
+`tree-sitter-simplex/src/{parser,scanner}.c' and copies the resulting
+shared library into `simplex-ts-mode-grammar-dir' (Emacs' default
+`treesit' lookup path). Call this after pulling or editing the grammar
+source so `simplex-ts-mode' picks up the change; the mode does not do
+this automatically.
+
+CALLBACK, if given, is called with no arguments once the build finishes
+successfully."
+  (interactive)
+  (unless (file-directory-p simplex-ts-mode-source-dir)
+    (user-error "Grammar source not found at %s (set `simplex-ts-mode-source-dir')"
+                simplex-ts-mode-source-dir))
+  (let ((buf (get-buffer-create "*simplex-ts-mode grammar build*"))
+        (default-directory simplex-ts-mode-source-dir))
+    (with-current-buffer buf
+      (erase-buffer))
+    (display-buffer buf)
+    (make-process
+     :name "simplex-ts-mode-install-grammar"
+     :buffer buf
+     :command (list "make" "install-emacs"
+                     (concat "EMACS_TS_DIR=" simplex-ts-mode-grammar-dir))
+     :sentinel
+     (lambda (proc _event)
+       (unless (process-live-p proc)
+         (if (zerop (process-exit-status proc))
+             (progn
+               (message "simplex-ts-mode: grammar installed to %s"
+                        simplex-ts-mode-grammar-dir)
+               (when callback (funcall callback)))
+           (message "simplex-ts-mode: grammar build failed, see buffer %s"
+                     (buffer-name buf))))))))
+
+(defun simplex-ts-mode--grammar-stale-p ()
+  "Return non-nil if the installed grammar looks older than its source.
+
+Compares the modification time of the installed shared library (see
+`simplex-ts-mode--grammar-library-path') against `grammar.js' and
+`src/scanner.c' in `simplex-ts-mode-source-dir'. This is only a heuristic
+(mtimes can be misleading, e.g. right after a fresh git clone) but catches
+the common case of forgetting to reinstall after editing the grammar."
+  (let* ((lib (simplex-ts-mode--grammar-library-path))
+         (lib-time (and lib (file-exists-p lib)
+                        (file-attribute-modification-time (file-attributes lib))))
+         (src-files (seq-filter
+                     #'file-exists-p
+                     (list (expand-file-name "grammar.js" simplex-ts-mode-source-dir)
+                           (expand-file-name "src/scanner.c" simplex-ts-mode-source-dir)))))
+    (and lib-time
+         src-files
+         (seq-some (lambda (f)
+                     (time-less-p lib-time (file-attribute-modification-time
+                                             (file-attributes f))))
+                   src-files))))
+
+(defvar-local simplex-ts-mode--warned-stale nil
+  "Non-nil once this buffer has warned about a stale grammar.")
+
+(defun simplex-ts-mode--maybe-warn-stale-grammar ()
+  "Warn once if the installed grammar predates its source checkout."
+  (when (and (not simplex-ts-mode--warned-stale)
+             (file-directory-p simplex-ts-mode-source-dir)
+             (simplex-ts-mode--grammar-stale-p))
+    (setq simplex-ts-mode--warned-stale t)
+    (message (concat "simplex-ts-mode: the installed grammar looks older than "
+                      "tree-sitter-simplex/{grammar.js,src/scanner.c}; run "
+                      "`M-x simplex-ts-mode-install-grammar' to rebuild it."))))
+
 ;;; Mode ---------------------------------------------------------------------
 
 ;;;###autoload
@@ -275,7 +408,11 @@ see `treesit-install-language-grammar'"))
   (setq-local outline-regexp simplex-ts-mode--outline-regexp)
   (setq-local outline-level #'simplex-ts-mode--outline-level)
 
-  (treesit-major-mode-setup))
+  (treesit-major-mode-setup)
+
+  ;; Best-effort, non-blocking warning if the installed grammar predates the
+  ;; checked-out source (see the "Grammar installation" section above).
+  (run-with-idle-timer 0 nil #'simplex-ts-mode--maybe-warn-stale-grammar))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.simplex\\'" . simplex-ts-mode))

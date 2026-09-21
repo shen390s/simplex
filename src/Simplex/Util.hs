@@ -9,12 +9,17 @@ module Simplex.Util (
 import Text.Regex
 import Data.Maybe
 
+import Control.Concurrent (forkIO)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
+import Control.DeepSeq (rnf)
 import Control.Exception
 import Control.Monad
 import Data.Time
 import System.Directory
 import System.Exit
+import System.IO
 import System.Process
+import GHC.IO.Encoding (mkTextEncoding)
 
 --  common tex units
 
@@ -70,7 +75,6 @@ skipOneSpace s = s
 
 removeIfExists :: String -> IO ()
 removeIfExists file = do
-    print $ "removing file " ++ file
     exists <- doesFileExist file
     when exists (removeFile file)
 
@@ -94,12 +98,41 @@ exec True cmd args = do
             handle ExitSuccess       = Right ""
 
 exec _ cmd args = do
-    r <- try $ readProcessWithExitCode cmd args ""
+    r <- try $ readProcessRobust cmd args
     return $ either (\e -> Left (127, show (e :: IOException))) handle r
         where
             handle (ExitFailure 127, out, err) = Left  (127, cmd ++ ": command not found")
             handle (ExitFailure exc, out, err) = Left  (exc, out ++ err)
             handle (ExitSuccess,     out, err) = Right $ out ++ err
+
+-- | Like @readProcessWithExitCode@, but decodes the child's stdout/stderr with
+-- a UTF-8 decoder that ignores (rather than crashes on) invalid byte
+-- sequences.  External tools such as @pdflatex@/@xelatex@ and the diagram
+-- renderers may emit log output that is not valid UTF-8 (especially with
+-- @\@cjk@ documents); the default lazy @hGetContents@ used by
+-- @readProcessWithExitCode@ throws
+-- "hGetContents: invalid argument (cannot decode byte sequence ...)" on such
+-- output.  Reading the pipes with a non-failing encoding avoids that.
+readProcessRobust :: String -> [String] -> IO (ExitCode, String, String)
+readProcessRobust cmd args = do
+    -- "UTF-8//IGNORE" drops undecodable bytes instead of raising an error.
+    enc <- mkTextEncoding "UTF-8//IGNORE"
+    (_, Just hOut, Just hErr, ph) <- createProcess (proc cmd args)
+        { std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe }
+    hSetEncoding hOut enc
+    hSetEncoding hErr enc
+    outVar <- newEmptyMVar
+    errVar <- newEmptyMVar
+    let slurp h var = forkIO $ do
+            s <- hGetContents h
+            _ <- evaluate (rnf s)
+            putMVar var s
+    _ <- slurp hOut outVar
+    _ <- slurp hErr errVar
+    out <- takeMVar outVar
+    err <- takeMVar errVar
+    ec  <- waitForProcess ph
+    return (ec, out, err)
 
 --  either utilities
 
