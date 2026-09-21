@@ -14,25 +14,30 @@ Simple table with rows
   (table
     (table_def
       marker: (table_marker)
-      format: (inline_text (text)))
-    (table_cell content: (block_or_line (inline (text))))
-    (table_cell content: (block_or_line (inline (text))))
+      format: (inline_text (inline (text))))
+    (table_cell content: (block_or_line inline: (inline_text (inline (text)))))
+    (table_cell content: (block_or_line inline: (inline_text (inline (text)))))
     (table_rule marker: (table_rule_marker))
-    (table_cell content: (block_or_line (inline (text))))))
+    (table_cell content: (block_or_line inline: (inline_text (inline (text)))))))
 
 ================================================================================
 Table with typed and colored cells
 ================================================================================
 
->$  \sum_{i=1}^n n^2
+>$  $x^2$
 >!  Heading
->red
-    A
+>red  A
 
 --------------------------------------------------------------------------------
 
 (document
   (table
-    (table_cell spec: (cell_spec) content: (block_or_line (inline (symbol) (text))))
-    (table_cell spec: (cell_spec) content: (block_or_line (inline (text))))
-    (table_cell spec: (cell_spec) content: (block_or_line (block)))))
+    (table_cell
+      spec: (cell_spec)
+      content: (block_or_line inline: (inline_text (inline (math (math_content))))))
+    (table_cell
+      spec: (cell_spec)
+      content: (block_or_line inline: (inline_text (inline (text)))))
+    (table_cell
+      spec: (cell_spec)
+      content: (block_or_line inline: (inline_text (inline (text)))))))

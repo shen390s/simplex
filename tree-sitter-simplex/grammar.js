@@ -231,7 +231,11 @@ module.exports = grammar({
     ),
 
     // e.g. |2L|, ,4, red, 2yellow|, $, #, !, C
-    cell_spec: $ => token.immediate(/[^\s\n][^\s\n]*/),
+    // Higher precedence than the inline `$`/`#`/`!` delimiters so that a spec
+    // immediately after `>` (e.g. `>$`, `>!`, `>#`) is taken as the cell spec
+    // rather than opening inline math/verbatim, which otherwise produces a
+    // parse error for `>$` cells.
+    cell_spec: $ => token.immediate(prec(1, /[^\s\n][^\s\n]*/)),
 
     // ---------------------------------------------------------------------
     // Plain paragraph: `.` marker or bare indented text.

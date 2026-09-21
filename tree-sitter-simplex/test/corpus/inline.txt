@@ -9,12 +9,12 @@ Inline markup in a paragraph
 (document
   (paragraph
     (inline_text
-      (text)
-      (bold (text_content))
-      (text)
-      (italic (text_content))
-      (text)
-      (underline (text_content)))))
+      (inline (text))
+      (inline (bold (text_content)))
+      (inline (text))
+      (inline (italic (text_content)))
+      (inline (text))
+      (inline (underline (text_content))))))
 
 ================================================================================
 Math, smallcaps and symbol
@@ -27,12 +27,12 @@ Math, smallcaps and symbol
 (document
   (paragraph
     (inline_text
-      (text)
-      (math (math_content))
-      (text)
-      (smallcaps (text_content))
-      (text)
-      (symbol))))
+      (inline (text))
+      (inline (math (math_content)))
+      (inline (text))
+      (inline (smallcaps (text_content)))
+      (inline (text))
+      (inline (symbol)))))
 
 ================================================================================
 Links, references and footnotes
@@ -45,9 +45,8 @@ Links, references and footnotes
 (document
   (paragraph
     (inline_text
-      (text)
-      (link (link_content))
-      (text)
-      (reference (ref_label))
-      (text)
-      (footnote (footnote_content)))))
+      (inline (text))
+      (inline (link (link_content)))
+      (inline (text))
+      (inline (reference (ref_label)))
+      (inline (footnote (footnote_content))))))

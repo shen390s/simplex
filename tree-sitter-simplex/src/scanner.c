@@ -40,7 +40,6 @@ void tree_sitter_simplex_external_scanner_deserialize(void *p, const char *b, un
 }
 
 static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
-static void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
 
 /* Consume the rest of the current line (up to and including the newline). */
 static void consume_line(TSLexer *lexer) {
@@ -52,15 +51,6 @@ static void consume_line(TSLexer *lexer) {
   }
 }
 
-/* Is the current line (from the current column onward) blank? */
-static int line_is_blank(TSLexer *lexer) {
-  while (lexer->lookahead == ' ' || lexer->lookahead == '\t' ||
-         lexer->lookahead == '\r') {
-    advance(lexer);
-  }
-  return lexer->lookahead == '\n' || lexer->lookahead == 0;
-}
-
 bool tree_sitter_simplex_external_scanner_scan(void *payload, TSLexer *lexer,
                                                const bool *valid_symbols) {
   (void)payload;
@@ -70,66 +60,79 @@ bool tree_sitter_simplex_external_scanner_scan(void *payload, TSLexer *lexer,
     return false;
   }
 
-  /* NEWLINE: end the current control/command line. */
-  if (valid_symbols[NEWLINE] && lexer->lookahead == '\n') {
-    advance(lexer);
+  /* NEWLINE: end the current control/command line. Also fire at end-of-input
+   * so a final control/command line with no trailing newline still closes.
+   * Without the EOF case the parser can never reduce such a line and spins,
+   * which manifests as a hang / unbounded memory growth. */
+  if (valid_symbols[NEWLINE] &&
+      (lexer->lookahead == '\n' || lexer->lookahead == 0)) {
+    if (lexer->lookahead == '\n') {
+      advance(lexer);
+    }
     lexer->result_symbol = NEWLINE;
     return true;
   }
 
-  /* At the very start of a line (column 0). */
+  /* Block handling only makes sense at the very start of a line (column 0).
+   * We inspect the current line exactly once and decide between a blank line
+   * (BLOCK_END) and an indented text block (BLOCK_TEXT).  Both branches read
+   * the leading whitespace with `advance` and rely on `mark_end` to control
+   * what is actually consumed, so neither destructively discards input the
+   * other needs -- the earlier version used `skip` in the BLOCK_END probe,
+   * which ate the indentation and stopped BLOCK_TEXT from ever matching. */
   bool at_line_start = lexer->get_column(lexer) == 0;
 
-  /* BLOCK_END: a blank line, or EOF, terminates a block or separates blocks. */
-  if (valid_symbols[BLOCK_END]) {
-    if (lexer->lookahead == 0) {
-      lexer->result_symbol = BLOCK_END;
-      return true;
+  if (at_line_start && (valid_symbols[BLOCK_END] || valid_symbols[BLOCK_TEXT])) {
+    /* Nothing is consumed yet; the token, if any, starts here. */
+    lexer->mark_end(lexer);
+
+    /* Measure leading whitespace without discarding it. */
+    bool indented = (lexer->lookahead == ' ' || lexer->lookahead == '\t');
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t' ||
+           lexer->lookahead == '\r') {
+      advance(lexer);
     }
-    if (at_line_start) {
-      lexer->mark_end(lexer);
-      /* Skip whitespace to see whether this line is blank. */
-      while (lexer->lookahead == ' ' || lexer->lookahead == '\t' ||
-             lexer->lookahead == '\r') {
-        skip(lexer);
-      }
-      if (lexer->lookahead == '\n') {
-        skip(lexer);
+
+    /* Blank line (only whitespace then newline/EOF): a BLOCK_END separator. */
+    if (lexer->lookahead == '\n') {
+      if (valid_symbols[BLOCK_END]) {
+        advance(lexer);            /* consume the newline */
+        lexer->mark_end(lexer);    /* the blank line is consumed */
         lexer->result_symbol = BLOCK_END;
+        return true;
+      }
+      /* BLOCK_END not wanted here; fall through without consuming. */
+    } else if (indented && valid_symbols[BLOCK_TEXT]) {
+      /* Indented, non-blank: gather this and any following indented, non-blank
+       * lines into a single BLOCK_TEXT token. */
+      bool consumed_any = false;
+      for (;;) {
+        /* At this point we are positioned just past the indentation of a
+         * non-blank line (lookahead is the first content character). */
+        consume_line(lexer);       /* consume through the trailing newline */
+        consumed_any = true;
         lexer->mark_end(lexer);
+
+        /* Peek at the next line: continue only if it is indented and not
+         * blank.  Use advance (mark_end already fixed the token boundary) so
+         * that trailing indentation/blank lines are left for BLOCK_END. */
+        if (!(lexer->lookahead == ' ' || lexer->lookahead == '\t')) {
+          break;                   /* column-0 line or EOF: block ends here */
+        }
+        while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+          advance(lexer);
+        }
+        if (lexer->lookahead == '\n' || lexer->lookahead == 0) {
+          break;                   /* blank line: block ends, leave it */
+        }
+      }
+      if (consumed_any) {
+        lexer->result_symbol = BLOCK_TEXT;
         return true;
       }
     }
-  }
-
-  /* BLOCK_TEXT: indented, non-blank lines gathered into a single block. */
-  if (valid_symbols[BLOCK_TEXT] && at_line_start &&
-      (lexer->lookahead == ' ' || lexer->lookahead == '\t')) {
-    bool consumed_any = false;
-    for (;;) {
-      /* Peek: is this line indented and non-blank? */
-      if (!(lexer->lookahead == ' ' || lexer->lookahead == '\t')) {
-        break;
-      }
-      /* Look ahead past indentation to check for blank line. */
-      while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
-        advance(lexer);
-      }
-      if (lexer->lookahead == '\n' || lexer->lookahead == 0) {
-        /* Blank line ends the block; do not consume it here. */
-        break;
-      }
-      consume_line(lexer);
-      consumed_any = true;
-      lexer->mark_end(lexer);
-      if (lexer->get_column(lexer) != 0) {
-        break;
-      }
-    }
-    if (consumed_any) {
-      lexer->result_symbol = BLOCK_TEXT;
-      return true;
-    }
+    /* Otherwise: a column-0, non-blank line (a control marker or command).
+     * Consume nothing here and let the internal lexer handle it. */
   }
 
   return false;
