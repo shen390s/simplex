@@ -66,6 +66,7 @@
 ;;; Code:
 
 (require 'treesit)
+(require 'subr-x)
 
 (declare-function treesit-parser-create "treesit.c")
 (declare-function treesit-node-type "treesit.c")
@@ -88,14 +89,32 @@ Matches the default `treesit' lookup path and the `EMACS_TS_DIR' used by
   :group 'simplex)
 
 (defcustom simplex-ts-mode-source-dir
-  (let ((this-dir (file-name-directory (or load-file-name buffer-file-name
-                                            default-directory))))
+  (let* ((this-file (or load-file-name buffer-file-name default-directory))
+         ;; Package managers such as straight.el byte-compile this file in
+         ;; place, so Emacs may load the resulting .elc from a build
+         ;; directory (~/.emacs.d/straight/build/simplex-ts-mode/) that only
+         ;; *symlinks* the .el source in -- the .elc itself is a real file
+         ;; there, so `file-truename' on it does not lead anywhere useful.
+         ;; Resolve to the sibling .el (which is what straight.el symlinks)
+         ;; before following symlinks, so we land on the actual checkout
+         ;; (e.g. ~/.emacs.d/straight/repos/simplex/emacs/simplex-ts-mode.el)
+         ;; where `../tree-sitter-simplex/' is the real grammar directory.
+         (el-file (if (string-suffix-p ".elc" this-file)
+                      (concat (string-remove-suffix ".elc" this-file) ".el")
+                    this-file))
+         (el-file (if (file-exists-p el-file) el-file this-file))
+         (this-dir (file-name-directory (file-truename el-file))))
     (expand-file-name "../tree-sitter-simplex/" this-dir))
   "Directory of the `tree-sitter-simplex' grammar checkout.
 
 Used by `simplex-ts-mode-install-grammar' (to run \"make install-emacs\"
 there) and by the stale-grammar check performed when `simplex-ts-mode' is
-enabled."
+enabled.
+
+Derived from the *true* (symlink-resolved) location of this mode's `.el'
+source file, so it still finds the grammar when Emacs loads a compiled
+`.elc' from a build directory that only symlinks the `.el', as package
+managers like straight.el do."
   :type 'directory
   :group 'simplex)
 
