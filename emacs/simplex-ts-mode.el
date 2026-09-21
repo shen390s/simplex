@@ -59,10 +59,12 @@
   :prefix "simplex-")
 
 (defcustom simplex-ts-mode-indent-offset 4
-  "Number of spaces for each indentation step in `simplex-ts-mode'.
+  "Preferred size of one Simplex indentation step, in spaces.
 
-Simplex blocks are introduced by a column-0 marker and their text is
-indented on the following lines; this controls the size of that indent."
+Simplex is indentation-significant and block bodies are verbatim, so
+`simplex-ts-mode' never re-flows existing block text (see the indentation
+section below).  This value is therefore only a hint for editor commands
+that insert fresh indentation; it is not used to reformat existing lines."
   :type 'integer
   :safe #'integerp
   :group 'simplex)
@@ -147,19 +149,41 @@ indented on the following lines; this controls the size of that indent."
 
 ;;; Indentation --------------------------------------------------------------
 
-;; Simplex indentation is intentionally simple: a block's text lives one
-;; `simplex-ts-mode-indent-offset' step in from the column-0 marker that
-;; introduces it.  Column-0 markers and bare commands stay at the margin.
+;; Simplex is indentation-significant and the text inside a block is verbatim:
+;; a `.#`/`.code` block may quote raw Simplex source with its own multi-level
+;; indentation, a `:` description list continues at a deeper indent, and so on.
+;; Re-flowing those lines corrupts the document.  Therefore indentation here is
+;; deliberately conservative:
+;;
+;;   - Column-0 lines (markers, bare commands, `@`-properties) stay at column 0.
+;;   - Every line that belongs to a block body keeps the author's own
+;;     indentation untouched.
+;;
+;; The grammar exposes an entire indented block (including all of its interior
+;; lines) as `block` nodes, so we cannot tell a block's first line from its
+;; continuations structurally; the safe, format-preserving choice is to leave
+;; all of them exactly as they are.
+
+(defun simplex-ts-mode--keep-indent-anchor (_node _parent bol &rest _)
+  "Anchor at the current line's existing indentation.
+Returns the buffer position of the first non-whitespace character on the
+line beginning at BOL (or BOL itself for a blank/whitespace-only line), so
+that a zero offset preserves the line's current indentation."
+  (save-excursion
+    (goto-char bol)
+    (skip-chars-forward " \t")
+    (point)))
 
 (defvar simplex-ts-mode--indent-rules
   `((simplex
-     ;; Top-level constructs anchor to the left margin.
+     ;; Column-0 constructs anchor to the left margin.
      ((parent-is "document") column-0 0)
-     ;; Block text is indented one step from its enclosing construct.
-     ((node-is "block") parent-bol simplex-ts-mode-indent-offset)
-     ((parent-is "block") parent-bol 0)
-     ;; Fallback: keep the current indentation.
-     (catch-all parent-bol 0)))
+     ;; Block bodies are verbatim: never re-flow them, keep the author's
+     ;; indentation exactly as written.
+     ((node-is "block") simplex-ts-mode--keep-indent-anchor 0)
+     ((parent-is "block") simplex-ts-mode--keep-indent-anchor 0)
+     ;; Fallback: also preserve whatever indentation is already there.
+     (catch-all simplex-ts-mode--keep-indent-anchor 0)))
   "Tree-sitter indentation rules for `simplex-ts-mode'.")
 
 ;;; Imenu / navigation -------------------------------------------------------
