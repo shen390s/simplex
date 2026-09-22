@@ -1,3 +1,5 @@
+@cjk
+
 @title
 	Simplex -- Simple \LaTeX  (v0.4.0)
 
@@ -2995,6 +2997,34 @@ newpage
 
     .   Once @cjk is set you can write Chinese text directly in
         your paragraphs and it will be typeset with ctex.
+
+===  Setting CJK fonts
+
+    By default \#ctex# picks a font for you, but you will usually want
+    to choose one explicitly. Since \#@preamble# content is inserted
+    after \#fontspec#/\#ctex# are loaded, you can use \#ctex#'s own
+    font commands there: \#\setCJKmainfont# for body text,
+    \#\setCJKsansfont# for sans-serif, and \#\setCJKmonofont# for
+    monospaced (verbatim/code) text. Any font family installed on your
+    system (\#fc-list :lang=zh# will show what is available) works.
+
+.#  @cjk
+
+    @preamble
+        \setCJKmainfont{Noto Serif CJK SC}
+        \setCJKsansfont{Noto Sans CJK SC}
+        \setCJKmonofont{Noto Sans Mono CJK SC}
+
+    @title
+        My Chinese Document
+
+    .   Paragraphs are typeset with the main CJK font set above.
+
+->  \#@cjk# always builds with XeLaTeX, never pdflatex, since
+    \#fontspec# (and therefore \#ctex#'s font commands) require it.
+    If the chosen font is not installed, XeLaTeX will report a
+    "Font ... not found" error rather than silently falling back to
+    another font.
 
 ==  Section aliases
 
