@@ -64,12 +64,28 @@ import Control.Monad.IO.Class (liftIO)'
           program = "${simplex}/bin/simplex";
         };
 
+        # Regenerate the tree-sitter grammar's parser.c and JSON artifacts
+        # from grammar.js using a pinned tree-sitter CLI.  Run with:
+        #   nix run .#generate-grammar
+        # The generated sources are committed so that Emacs'
+        # treesit-install-language-grammar can build the grammar from a clean
+        # clone without needing the tree-sitter CLI itself.
+        apps.generate-grammar = {
+          type = "app";
+          program = "${pkgs.writeShellScript "generate-grammar" ''
+            set -eu
+            export PATH="${pkgs.tree-sitter}/bin:$PATH"
+            cd "''${SIMPLEX_ROOT:-$PWD}/tree-sitter-simplex"
+            exec tree-sitter generate
+          ''}";
+        };
+
         devShells.default = haskellPackages.shellFor {
           packages = _: [ simplexUnwrapped ];
           nativeBuildInputs = with haskellPackages; [
             cabal-install
             ghc
-          ] ++ runtimeDeps;
+          ] ++ runtimeDeps ++ [ pkgs.tree-sitter ];
         };
       });
 }

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Keep the committed tree-sitter grammar consistent with grammar.js.
+#
+# When grammar.js (or the grammar's build config) is part of a commit, the
+# generated parser sources must be regenerated and re-staged, otherwise the
+# committed parser.c drifts out of sync with the grammar definition.  This
+# hook regenerates them and aborts the commit if anything changed so it can
+# be re-staged deliberately.
+#
+# Enable once per clone with:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+grammar_dir="tree-sitter-simplex"
+
+# Only act when grammar inputs are staged.
+if git diff --cached --name-only | grep -Eq "^${grammar_dir}/(grammar\.js|tree-sitter\.json|package\.json)$"; then
+  echo "pre-commit: grammar.js changed -> regenerating tree-sitter parser"
+
+  before="$(git hash-object "${grammar_dir}/src/parser.c" 2>/dev/null || echo none)"
+  bash "${grammar_dir}/generate.sh"
+  after="$(git hash-object "${grammar_dir}/src/parser.c" 2>/dev/null || echo none)"
+
+  if [ "$before" != "$after" ]; then
+    echo "pre-commit: parser.c was stale and has been regenerated." >&2
+    echo "pre-commit: re-stage the generated files and commit again:" >&2
+    echo "    git add ${grammar_dir}/src/parser.c ${grammar_dir}/src/grammar.json \\" >&2
+    echo "            ${grammar_dir}/src/node-types.json ${grammar_dir}/src/tree_sitter" >&2
+    exit 1
+  fi
+
+  echo "pre-commit: generated parser is up to date"
+fi
